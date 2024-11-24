@@ -19,4 +19,4 @@ ENV CELERY_BROKER_URL=redis://redis:6379/0
 ENV CELERY_RESULT_BACKEND=redis://redis:6379/0
 
 # Run celery worker when the container launches
-CMD ["celery", "-A", "celery_app.main:celery_instance", "worker", "--loglevel=info"]
+CMD ["celery", "-A", "celery_worker.main:celery_instance", "worker", "--loglevel=info"]

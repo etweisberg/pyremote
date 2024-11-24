@@ -9,7 +9,7 @@ services:
   celery-worker:
     build:
       context: .
-      dockerfile: celery_app/Dockerfile
+      dockerfile: celery_worker/Dockerfile
     container_name: celery-worker
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
@@ -20,7 +20,7 @@ services:
       [
         "celery",
         "-A",
-        "celery_app.main:celery_instance",
+        "celery_worker.main:celery_instance",
         "worker",
         "--loglevel=info",
       ]

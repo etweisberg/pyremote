@@ -2,6 +2,46 @@
 
 Remote security-first Python code execution with a simple frontend UI powered by Kubernetes
 
+## k8s Startup
+
+1. Build the images. From the `api` directory build the images using the following two commands
+
+```
+docker build . -f fastapi_app/Dockerfile -t etweisberg/fastapi-app:latest
+docker build . -f celery_worker/Dockerfile -t etweisberg/celery-worker:latest
+```
+
+2. Create a kubernetes cluster
+
+```
+kind create cluster --name cis1912
+```
+
+3. Load images into cluster
+
+```
+kind load docker-image etweisberg/celery-worker:latest --name cis1912
+kind load docker-image etweisberg/fastapi-app:latest --name cis1912
+```
+
+4. Create the namespace first
+
+```
+kubectl apply -f k8s/namespace.yaml
+```
+
+5. Apply all other k8s deployments and services
+
+```
+kubectl apply -f k8s/
+```
+
+6. Port-forward to test out the API locally
+
+```
+kubectl port-forward svc/fastapi-service 8000:8000 -n api-apps
+```
+
 ## SetUp
 
 1. Celery task run as a k8s deployment

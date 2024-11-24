@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from celery_app.tasks import execute_code
+from celery_worker.tasks import execute_code
 from pydantic import BaseModel
 
 
