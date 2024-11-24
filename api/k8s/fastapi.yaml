@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi-app
+  namespace: api-apps
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fastapi-app
+  template:
+    metadata:
+      labels:
+        app: fastapi-app
+    spec:
+      containers:
+      - name: fastapi-app
+        image: etweisberg/fastapi-app:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8000
+        env:
+        - name: CELERY_BROKER_URL
+          value: redis://redis:6379/0
+        - name: CELERY_RESULT_BACKEND
+          value: redis://redis:6379/0
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastapi-service
+  namespace: api-apps
+spec:
+  type: ClusterIP
+  selector:
+    app: fastapi-app
+  ports:
+  - protocol: TCP
+    port: 8000
+    targetPort: 8000

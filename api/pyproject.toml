@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "api"
+version = "0.1.0"
+description = "Python code sandbox API"
+authors = ["Ethan Weisberg <ethaniweisberg@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.13"
+celery = "^5.4.0"
+fastapi = "^0.115.5"
+uvicorn = "^0.32.1"
+python-multipart = "^0.0.17"
+redis = "^5.2.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
