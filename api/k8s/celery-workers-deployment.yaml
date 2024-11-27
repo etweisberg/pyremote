@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-workers
+  namespace: api-apps
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: celery-worker
+  template:
+    metadata:
+      labels:
+        app: celery-worker
+    spec:
+      initContainers:
+      - name: init-tmp-permissions
+        image: busybox
+        command: ["sh", "-c", "chown -R 1000:1000 /tmp"]
+        volumeMounts:
+        - name: temp-dir
+          mountPath: /tmp
+      containers:
+      - name: celery-worker
+        image: etweisberg/celery-worker:latest
+        imagePullPolicy: Never
+        env:
+        - name: CELERY_BROKER_URL
+          value: redis://redis:6379/0
+        - name: CELERY_RESULT_BACKEND
+          value: redis://redis:6379/0
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        securityContext:
+          runAsUser: 1000
+          runAsGroup: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+        livenessProbe:
+          exec:
+            command: ["sh", "-c", "celery -A celery_worker.main:celery_instance inspect ping"]
+          initialDelaySeconds: 15  # Allow time for startup
+          periodSeconds: 10        # Check every 10 seconds
+          timeoutSeconds: 5
+          failureThreshold: 3      # Mark as failed after 3 consecutive failures
+        readinessProbe:
+          exec:
+            command: ["sh", "-c", "celery -A celery_worker.main:celery_instance inspect ping"]
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+        volumeMounts:
+        - name: temp-dir
+          mountPath: /tmp
+          readOnly: false
+      volumes:
+      - name: temp-dir
+        emptyDir: {}

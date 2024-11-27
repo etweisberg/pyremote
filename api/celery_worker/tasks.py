@@ -7,7 +7,10 @@ from .main import celery_instance
 
 @celery_instance.task
 def execute_code(code: str, requirements: list):
-    temp_dir = tempfile.mkdtemp()
+    temp_dir = tempfile.mkdtemp(dir="/tmp")
+    print(f"Temporary directory: {temp_dir}")
+    print(f"Permissions for /tmp: {os.stat('/tmp')}")
+    print(f"Permissions for {temp_dir}: {os.stat(temp_dir)}")
     try:
         venv_path = os.path.join(temp_dir, "venv")
         subprocess.run(["python3", "-m", "venv", venv_path], check=True)
