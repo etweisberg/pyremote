@@ -53,8 +53,8 @@ kubectl port-forward svc/fastapi-service 8000:8000 -n api-apps
   - [x] Security context (for non-root user and read-only files)
   - [x] Readiness / Liveness probes
   - [x] HPA (horizontal pod autoscaler) + PDB (pod disruption budget)
-- [ ] Add static code analysis to FastAPI
-  - [ ] `bandit` and `safety` modules
+- [x] Add static code analysis to FastAPI
+  - [x] `bandit` and `safety` modules
 - [ ] All of the frontend LOL 😅
 
 ## SetUp
