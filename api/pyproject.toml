@@ -12,6 +12,7 @@ fastapi = "^0.115.5"
 uvicorn = "^0.32.1"
 python-multipart = "^0.0.17"
 redis = "^5.2.0"
+bandit = "^1.8.0"
 
 
 [build-system]

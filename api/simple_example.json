@@ -1,0 +1,4 @@
+{
+  "code": "print('Hello, world!')\nfor i in range(5):\n    print(f'Count: {i}')",
+  "requirements": []
+}

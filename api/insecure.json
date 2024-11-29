@@ -1,0 +1,4 @@
+{
+  "code": "import os\nimport subprocess\n\ndef insecure_function():\n    os.system('rm -rf /')  # Shell injection\n\ndef another_insecure_function():\n    subprocess.run(['rm', '-rf', '/'], shell=True)  # Dangerous use of shell=True\n\ninsecure_function()\nanother_insecure_function()",
+  "requirements": []
+}
