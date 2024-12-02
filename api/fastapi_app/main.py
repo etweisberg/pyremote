@@ -3,6 +3,7 @@ import os
 import logging
 from fastapi.logger import logger as fastapi_logger
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from celery_worker.tasks import execute_code
 from pydantic import BaseModel, Field
 from bandit.core.manager import BanditManager
@@ -20,6 +21,17 @@ logger = logging.getLogger("uvicorn.error")
 FastAPI application
 """
 app = FastAPI()
+
+origins = [
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 """
 Bandit configuration
