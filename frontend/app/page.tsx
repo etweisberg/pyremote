@@ -6,12 +6,26 @@ import Editor from "@monaco-editor/react";
 export default function Home() {
   const [code, setCode] = useState('# print("Hello, World!")');
   const [taskId, setTaskId] = useState<string>("");
+  const [isMalicious, setIsMalicious] = useState<boolean>(false);
+  const [listErrors, setListErrors] = useState<
+    {
+      filename: string;
+      line_number: number;
+      issue_text: string;
+      severity: string;
+      confidence: string;
+      test_name: string;
+    }[]
+  >([]);
+  const [loading, setLoading] = useState<boolean>(false);
+
   interface ResponseData {
     stdout?: string;
     stderr?: string;
     status?: string;
   }
-  const apiUrl = "http://localhost:8000";
+
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"; // Use env variable
 
   const [responseData, setResponseData] = useState<ResponseData | null>(null);
 
@@ -22,21 +36,69 @@ export default function Home() {
       interval = setInterval(async () => {
         try {
           const response = await fetch(`${apiUrl}/task_result/${taskId}`);
+          if (!response.ok) {
+            throw new Error(
+              `Error fetching task result: ${response.statusText}`
+            );
+          }
           const data = await response.json();
           setResponseData(data);
 
           if (data.stdout || data.stderr) {
-            clearInterval(interval);
+            clearInterval(interval); // Stop polling when task is complete
+            setLoading(false); // Stop loading spinner
           }
         } catch (error) {
           console.error("Error fetching task result:", error);
-          clearInterval(interval);
+          clearInterval(interval); // Stop polling on error
+          setLoading(false);
         }
-      }, 5000);
-
-      return () => clearInterval(interval);
+      }, 1000); // Increased polling interval to 1s
     }
+
+    return () => clearInterval(interval);
   }, [taskId]);
+
+  const handleRunCode = async () => {
+    try {
+      setTaskId(""); // Reset task ID
+      setResponseData(null); // Clear previous response
+      setIsMalicious(false); // Reset malicious flag
+      setListErrors([]); // Clear previous errors
+      setLoading(true); // Start loading spinner
+
+      const response = await fetch(`${apiUrl}/execute`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setIsMalicious(true);
+        setListErrors(errorData.detail?.issues || []);
+        console.error("Malicious Code Detected");
+        setLoading(false); // Stop loading spinner
+      } else {
+        const result = await response.json();
+        setTaskId(result.task_id);
+      }
+    } catch (error) {
+      console.error("Error running code:", error);
+      setIsMalicious(true);
+      setListErrors([
+        {
+          filename: "",
+          line_number: 0,
+          issue_text: "Failed to execute the code. Please try again later.",
+          severity: "CRITICAL",
+          confidence: "UNKNOWN",
+          test_name: "execution_error",
+        },
+      ]);
+      setLoading(false); // Stop loading spinner
+    }
+  };
 
   return (
     <div className="h-screen flex flex-col font-sans">
@@ -57,9 +119,7 @@ export default function Home() {
         </div>
         <div className="flex-1 bg-gray-100 p-5 overflow-y-auto">
           <div className="bg-white p-4 rounded shadow">
-            {taskId === "" ? (
-              <p className="text-gray-800">Your output will appear here.</p>
-            ) : responseData && responseData.status ? (
+            {loading ? (
               <div className="flex items-center">
                 <svg
                   className="animate-spin h-5 w-5 mr-3 text-gray-800"
@@ -81,45 +141,52 @@ export default function Home() {
                     d="M4 12a8 8 0 018 8V4a8 8 0 00-8 8z"
                   ></path>
                 </svg>
-                <span>Loading</span>
+                <span>Loading...</span>
+              </div>
+            ) : isMalicious ? (
+              <div className="text-red-600">
+                <h2 className="font-bold">Potential Issues Detected:</h2>
+                <ul className="mt-2 list-disc list-inside">
+                  {listErrors.map((error, index) => (
+                    <li key={index}>
+                      <p>
+                        <strong>File:</strong> {error.filename}, Line:{" "}
+                        {error.line_number}
+                      </p>
+                      <p>
+                        <strong>Issue:</strong> {error.issue_text}
+                      </p>
+                      <p>
+                        <strong>Severity:</strong> {error.severity},{" "}
+                        <strong>Confidence:</strong> {error.confidence}
+                      </p>
+                      <p>
+                        <strong>Test Name:</strong> {error.test_name}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
               </div>
             ) : responseData && responseData.stdout ? (
               <pre className="text-gray-800 whitespace-pre-wrap">
                 {responseData.stdout}
               </pre>
             ) : responseData && responseData.stderr ? (
-              <div className="flex items-center text-red-600">
-                <svg
-                  className="h-5 w-5 mr-2"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M9 12a1 1 0 102 0V8a1 1 0 10-2 0v4zm1 7a8 8 0 100-16 8 8 0 000 16zm0-18C4.477 1 1 4.477 1 9s3.477 8 8 8 8-3.477 8-8S13.523 1 9 1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <pre className="whitespace-pre-wrap">{responseData.stderr}</pre>
+              <div className="text-red-600">
+                <pre className="whitespace-pre-wrap">
+                  {responseData.stderr}
+                </pre>
               </div>
-            ) : null}
+            ) : (
+              <p className="text-gray-800">Your output will appear here.</p>
+            )}
           </div>
         </div>
       </div>
       <div className="p-2 bg-gray-50 flex justify-center border-t border-gray-300">
         <button
           className="px-6 py-3 text-lg bg-blue-600 text-white rounded hover:bg-blue-700"
-          onClick={async () => {
-            const response = await fetch(`${apiUrl}/execute`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ code }),
-            });
-            const result = await response.json();
-            setTaskId(result.taskId);
-            setResponseData(null);
-          }}
+          onClick={handleRunCode}
         >
           Run Code
         </button>
