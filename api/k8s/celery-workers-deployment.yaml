@@ -22,8 +22,8 @@ spec:
           mountPath: /tmp
       containers:
       - name: celery-worker
-        image: etweisberg/celery-worker:latest
-        imagePullPolicy: Never
+        image: gcr.io/pyremote-444621/celery-worker:latest
+        imagePullPolicy: Always
         env:
         - name: CELERY_BROKER_URL
           value: redis://redis:6379/0
