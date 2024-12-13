@@ -25,7 +25,7 @@ export default function Home() {
     status?: string;
   }
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"; // Use env variable
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://api.pyremote.com"; // Use env variable
 
   const [responseData, setResponseData] = useState<ResponseData | null>(null);
 
@@ -173,9 +173,7 @@ export default function Home() {
               </pre>
             ) : responseData && responseData.stderr ? (
               <div className="text-red-600">
-                <pre className="whitespace-pre-wrap">
-                  {responseData.stderr}
-                </pre>
+                <pre className="whitespace-pre-wrap">{responseData.stderr}</pre>
               </div>
             ) : (
               <p className="text-gray-800">Your output will appear here.</p>
