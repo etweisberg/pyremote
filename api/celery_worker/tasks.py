@@ -5,7 +5,7 @@ import shutil
 from .main import celery_instance
 
 
-@celery_instance.task
+@celery_instance.task(time_limit=500)
 def execute_code(code: str, requirements: list):
     temp_dir = tempfile.mkdtemp(dir="/tmp")
     print(f"Temporary directory: {temp_dir}")
