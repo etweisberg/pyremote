@@ -54,12 +54,27 @@ jobs:
             -t gcr.io/pyremote-444621/celery-worker:latest \
             --push
 
-      # Step 7: Clear existing deployments in Kubernetes
+      # Step 7: Configure kubectl context
+      - name: Configure kubectl
+        run: |
+          gcloud container clusters get-credentials pyremote-cluster \
+            --zone us-east1-b \
+            --project pyremote-444621
+
+      # Step 8: Verify kubectl context
+      - name: Verify kubectl context
+        run: |
+          echo "Current kubectl configuration:"
+          kubectl config view
+          echo "Current Kubernetes nodes:"
+          kubectl get nodes
+
+      # Step 9: Clear existing deployments in Kubernetes
       - name: Clear Kubernetes deployments
         run: |
           kubectl delete deployments --all -n api-apps
 
-      # Step 8: Apply Kubernetes configurations from the 'api/k8s' directory
+      # Step 10: Apply Kubernetes configurations from the 'api/k8s' directory
       - name: Apply Kubernetes manifests
         working-directory: api
         run: |
