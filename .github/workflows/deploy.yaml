@@ -20,7 +20,7 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
 
-      # Step 3: Set up Docker
+      # Step 3: Set up Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
@@ -38,8 +38,9 @@ jobs:
             --zone us-east1-b \
             --project pyremote-444621
 
-      # Step 6: Build and push Docker images
+      # Step 6: Build and push Docker images from the 'api' directory
       - name: Build and push Docker images
+        working-directory: api
         run: |
           # Build FastAPI app image
           docker buildx build . \
@@ -66,7 +67,8 @@ jobs:
         run: |
           kubectl delete deployments --all -n api-apps
 
-      # Step 8: Apply Kubernetes configurations
+      # Step 8: Apply Kubernetes configurations from the 'api/k8s' directory
       - name: Apply Kubernetes manifests
+        working-directory: api
         run: |
-          kubectl apply -f api/k8s
+          kubectl apply -f k8s
