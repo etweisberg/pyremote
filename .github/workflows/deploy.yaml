@@ -42,25 +42,19 @@ jobs:
       - name: Build and push Docker images
         working-directory: api
         run: |
-          # Build FastAPI app image
+          # Build and push FastAPI app image directly to GCR
           docker buildx build . \
             --platform linux/amd64 \
             -f fastapi_app/Dockerfile \
-            -t fastapi-app:latest
+            -t gcr.io/pyremote-444621/fastapi-app:latest \
+            --push
 
-          # Build Celery worker image
+          # Build and push Celery worker image directly to GCR
           docker buildx build . \
             --platform linux/amd64 \
             -f celery_worker/Dockerfile \
-            -t celery-worker:latest
-
-          # Tag and push FastAPI app image
-          docker tag fastapi-app:latest gcr.io/pyremote-444621/fastapi-app:latest
-          docker push gcr.io/pyremote-444621/fastapi-app:latest
-
-          # Tag and push Celery worker image
-          docker tag celery-worker:latest gcr.io/pyremote-444621/celery-worker:latest
-          docker push gcr.io/pyremote-444621/celery-worker:latest
+            -t gcr.io/pyremote-444621/celery-worker:latest \
+            --push
 
       # Step 7: Clear existing deployments in Kubernetes
       - name: Clear Kubernetes deployments
