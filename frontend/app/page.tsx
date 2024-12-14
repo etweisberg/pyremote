@@ -29,7 +29,7 @@ export default function Home() {
     status?: string;
   }
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://api.pyremote.com";
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.pyremote.com";
 
   const [responseData, setResponseData] = useState<ResponseData | null>(null);
 
