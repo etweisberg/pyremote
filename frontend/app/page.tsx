@@ -57,6 +57,10 @@ export default function Home() {
             clearInterval(interval); // Stop polling when task is complete
             setLoading(false); // Stop loading spinner
           }
+          if (data.stdout == "" && data.stderr == "") {
+            clearInterval(interval); // Stop polling when task is complete
+            setLoading(false); // Stop loading spinner
+          }
         } catch (error) {
           console.error("Error fetching task result:", error);
           clearInterval(interval); // Stop polling on error
@@ -219,6 +223,8 @@ export default function Home() {
               <div className="text-red-600">
                 <pre className="whitespace-pre-wrap">{responseData.stderr}</pre>
               </div>
+            ) : responseData && !responseData.stdout && !responseData.stderr ? (
+              <p className="text-gray-800">No Output</p>
             ) : (
               <p className="text-gray-800">Your output will appear here.</p>
             )}
