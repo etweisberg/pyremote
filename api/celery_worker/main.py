@@ -5,8 +5,8 @@ broker_url = os.getenv("CELERY_BROKER_URL")
 backend_url = os.getenv("CELERY_RESULT_BACKEND")
 
 try:
-    CACHE_REQUIREMENTS_PATH = Path("/app/cache_requirements.txt")
-    with CACHE_REQUIREMENTS_PATH.open() as f:
+    CACHE_REQUIREMENTS_PATH = "cache_requirements.txt"
+    with open(CACHE_REQUIREMENTS_PATH) as f:
         CACHED_REQUIREMENTS = set(line.strip().lower() for line in f if line.strip())
     celery_instance = Celery(
         "tasks",
