@@ -24,6 +24,7 @@ app = FastAPI()
 
 origins = [
     "http://localhost:3000",
+    "https://pyremote.com",
 ]
 
 app.add_middleware(
