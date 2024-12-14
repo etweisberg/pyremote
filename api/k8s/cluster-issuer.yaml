@@ -4,7 +4,6 @@ metadata:
   name: letsencrypt-prod
 spec:
   acme:
-    # Let's Encrypt ACME server URL for production
     server: https://acme-v02.api.letsencrypt.org/directory
     email: ethaniweisberg@gmail.com
     privateKeySecretRef:
