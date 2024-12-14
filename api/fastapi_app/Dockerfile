@@ -6,6 +6,9 @@ WORKDIR /app
 # Copy application code
 COPY . .
 
+# Copy cache_requirements.txt
+COPY fastapi_app/cache_requirements.txt /app/cache_requirements.txt
+
 # Copy application dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
