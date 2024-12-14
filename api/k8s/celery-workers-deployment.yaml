@@ -16,10 +16,12 @@ spec:
       initContainers:
       - name: init-tmp-permissions
         image: busybox
-        command: ["sh", "-c", "chown -R 1000:1000 /tmp"]
+        command: ["sh", "-c", "chown -R 1000:1000 /tmp /home/celery_user"]
         volumeMounts:
         - name: temp-dir
           mountPath: /tmp
+        - name: home-dir
+          mountPath: /home/celery_user
       containers:
       - name: celery-worker
         image: gcr.io/pyremote-444621/celery-worker:latest
@@ -29,6 +31,12 @@ spec:
           value: redis://redis:6379/0
         - name: CELERY_RESULT_BACKEND
           value: redis://redis:6379/0
+        - name: PIP_CACHE_DIR
+          value: /tmp/pip_cache
+        - name: PYTHONUSERBASE
+          value: /home/celery_user/.local
+        - name: PATH
+          value: "/home/celery_user/.local/bin:/usr/local/bin:/usr/bin:/bin"
         resources:
           requests:
             memory: "256Mi"
@@ -44,10 +52,10 @@ spec:
         livenessProbe:
           exec:
             command: ["sh", "-c", "celery -A celery_worker.main:celery_instance inspect ping"]
-          initialDelaySeconds: 15  # Allow time for startup
-          periodSeconds: 10        # Check every 10 seconds
+          initialDelaySeconds: 15
+          periodSeconds: 10
           timeoutSeconds: 5
-          failureThreshold: 3      # Mark as failed after 3 consecutive failures
+          failureThreshold: 3
         readinessProbe:
           exec:
             command: ["sh", "-c", "celery -A celery_worker.main:celery_instance inspect ping"]
@@ -58,6 +66,11 @@ spec:
         - name: temp-dir
           mountPath: /tmp
           readOnly: false
+        - name: home-dir
+          mountPath: /home/celery_user
+          readOnly: false
       volumes:
       - name: temp-dir
+        emptyDir: {}
+      - name: home-dir
         emptyDir: {}
