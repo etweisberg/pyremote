@@ -1,0 +1,87 @@
+name: Deploy to GKE
+
+on:
+  push:
+    branches:
+      - deployment # Adjust branch as needed
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 2: Authenticate with Google Cloud
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      # Step 3: Set up Google Cloud SDK
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: pyremote-444621
+          service_account_key: ${{ secrets.GCP_CREDENTIALS }}
+
+      # Step 4: Install gke-gcloud-auth-plugin via gcloud
+      - name: Install gke-gcloud-auth-plugin
+        run: |
+          gcloud components install gke-gcloud-auth-plugin
+          gcloud components update
+
+      # Step 5: Configure Docker for GCR
+      - name: Authenticate Docker with GCR
+        run: |
+          gcloud auth configure-docker gcr.io
+
+      # Step 6: Set up Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # Step 7: Build and push Docker images from the 'api' directory
+      - name: Build and push Docker images
+        working-directory: api
+        run: |
+          # Build and push FastAPI app image directly to GCR
+          docker buildx build . \
+            --platform linux/amd64 \
+            -f fastapi_app/Dockerfile \
+            -t gcr.io/pyremote-444621/fastapi-app:latest \
+            --push
+
+          # Build and push Celery worker image directly to GCR
+          docker buildx build . \
+            --platform linux/amd64 \
+            -f celery_worker/Dockerfile \
+            -t gcr.io/pyremote-444621/celery-worker:latest \
+            --push
+
+      # Step 8: Configure kubectl context
+      - name: Configure kubectl
+        run: |
+          gcloud container clusters get-credentials pyremote-cluster \
+            --zone us-east1-b \
+            --project pyremote-444621
+
+      # Step 9: Verify kubectl context
+      - name: Verify kubectl context
+        run: |
+          echo "Current kubectl configuration:"
+          kubectl config view
+          echo "Current Kubernetes nodes:"
+          kubectl get nodes
+
+      # Step 10: Clear existing deployments in Kubernetes
+      - name: Clear Kubernetes deployments
+        run: |
+          kubectl delete deployments --all -n api-apps
+
+      # Step 11: Apply Kubernetes configurations from the 'api/k8s' directory
+      - name: Apply Kubernetes manifests
+        working-directory: api
+        run: |
+          kubectl apply -f k8s

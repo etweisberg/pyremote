@@ -1,34 +1,44 @@
-import os
+import io
+import contextlib
 import subprocess
-import tempfile
-import shutil
+import sys
+import importlib
 from .main import celery_instance
 
 
-@celery_instance.task
+@celery_instance.task(time_limit=500)
 def execute_code(code: str, requirements: list):
-    temp_dir = tempfile.mkdtemp(dir="/tmp")
-    print(f"Temporary directory: {temp_dir}")
-    print(f"Permissions for /tmp: {os.stat('/tmp')}")
-    print(f"Permissions for {temp_dir}: {os.stat(temp_dir)}")
     try:
-        venv_path = os.path.join(temp_dir, "venv")
-        subprocess.run(["python3", "-m", "venv", venv_path], check=True)
-
+        # Install requirements directly using the current interpreter's pip
         if requirements:
-            pip_path = os.path.join(venv_path, "bin", "pip")
-            subprocess.run([pip_path, "install", *requirements], check=True)
+            try:
+                subprocess.run(
+                    [sys.executable, "-m", "pip", "install", *requirements],
+                    check=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+                importlib.invalidate_caches()
+                import site
 
-        code_file = os.path.join(temp_dir, "task.py")
-        with open(code_file, "w") as f:
-            f.write(code)
+                importlib.reload(site)
+            except subprocess.CalledProcessError as e:
+                return {
+                    "stdout": "",
+                    "stderr": f"Error installing dependencies: {e.stderr.decode()}",
+                }
 
-        python_path = os.path.join(venv_path, "bin", "python")
-        result = subprocess.run(
-            [python_path, code_file], capture_output=True, text=True
-        )
+        # Prepare to capture stdout and stderr
+        stdout = io.StringIO()
+        stderr = io.StringIO()
 
-        return {"stdout": result.stdout, "stderr": result.stderr}
+        # Execute the code
+        with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            exec_locals = {}
+            exec(code, exec_locals)
 
-    finally:
-        shutil.rmtree(temp_dir)
+        return {"stdout": stdout.getvalue(), "stderr": stderr.getvalue()}
+
+    except Exception as e:
+        # Handle exceptions during execution
+        return {"stdout": "", "stderr": str(e)}

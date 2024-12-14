@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
       - name: fastapi-app
-        image: etweisberg/fastapi-app:latest
-        imagePullPolicy: Never
+        image: gcr.io/pyremote-444621/fastapi-app:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8000
         env:
