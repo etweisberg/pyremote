@@ -2,9 +2,13 @@
 
 import { useState, useEffect } from "react";
 import Editor from "@monaco-editor/react";
+import { Autocomplete, TextField, Chip } from "@mui/material";
+import packages from "./packages";
 
 export default function Home() {
   const [code, setCode] = useState('# print("Hello, World!")');
+  const [requirements, setRequirements] = useState<string[]>([]);
+  const [availablePackages, setAvailablePackages] = useState<string[]>([]);
   const [taskId, setTaskId] = useState<string>("");
   const [isMalicious, setIsMalicious] = useState<boolean>(false);
   const [listErrors, setListErrors] = useState<
@@ -25,9 +29,14 @@ export default function Home() {
     status?: string;
   }
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://api.pyremote.com"; // Use env variable
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://api.pyremote.com";
 
   const [responseData, setResponseData] = useState<ResponseData | null>(null);
+
+  useEffect(() => {
+    // Simulating a list of 1,000 popular Python packages
+    setAvailablePackages(packages);
+  }, []);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -53,7 +62,7 @@ export default function Home() {
           clearInterval(interval); // Stop polling on error
           setLoading(false);
         }
-      }, 1000); // Increased polling interval to 1s
+      }, 1000);
     }
 
     return () => clearInterval(interval);
@@ -70,7 +79,7 @@ export default function Home() {
       const response = await fetch(`${apiUrl}/execute`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code, requirements }), // Include requirements
       });
 
       if (!response.ok) {
@@ -119,6 +128,41 @@ export default function Home() {
         </div>
         <div className="flex-1 bg-gray-100 p-5 overflow-y-auto">
           <div className="bg-white p-4 rounded shadow">
+            <h2 className="text-gray-700 font-bold">Python Dependencies</h2>
+            <Autocomplete
+              multiple
+              id="requirements-selector"
+              options={availablePackages}
+              getOptionLabel={(option) => option}
+              value={requirements}
+              onChange={(event, newValue) => {
+                if (JSON.stringify(newValue) !== JSON.stringify(requirements)) {
+                  setRequirements(newValue);
+                }
+              }}
+              filterSelectedOptions
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  variant="outlined"
+                  label=""
+                  placeholder="Search for packages..."
+                />
+              )}
+              renderTags={(tagValue, getTagProps) =>
+                tagValue.map((option, index) => {
+                  const { key, ...otherTagProps } = getTagProps({ index }); // Destructure to exclude `key`
+                  return <Chip key={key} label={option} {...otherTagProps} />;
+                })
+              }
+              sx={{
+                maxHeight: 300,
+                overflowY: "auto",
+                marginTop: "16px",
+              }}
+            />
+          </div>
+          <div className="bg-white p-4 mt-4 rounded shadow">
             {loading ? (
               <div className="flex items-center">
                 <svg

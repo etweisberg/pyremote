@@ -1,0 +1,72 @@
+name: Deploy to GKE
+
+on:
+  push:
+    branches:
+      - deployment # Adjust branch as needed
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 2: Authenticate with Google Cloud
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      # Step 3: Set up Docker
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # Step 4: Configure Google Cloud SDK
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: pyremote-444621
+          service_account_key: ${{ secrets.GCP_CREDENTIALS }}
+
+      # Step 5: Configure Kubernetes context
+      - name: Configure kubectl
+        run: |
+          gcloud container clusters get-credentials pyremote-cluster \
+            --zone us-east1-b \
+            --project pyremote-444621
+
+      # Step 6: Build and push Docker images
+      - name: Build and push Docker images
+        run: |
+          # Build FastAPI app image
+          docker buildx build . \
+            --platform linux/amd64 \
+            -f fastapi_app/Dockerfile \
+            -t fastapi-app:latest
+
+          # Build Celery worker image
+          docker buildx build . \
+            --platform linux/amd64 \
+            -f celery_worker/Dockerfile \
+            -t celery-worker:latest
+
+          # Tag and push FastAPI app image
+          docker tag fastapi-app:latest gcr.io/pyremote-444621/fastapi-app:latest
+          docker push gcr.io/pyremote-444621/fastapi-app:latest
+
+          # Tag and push Celery worker image
+          docker tag celery-worker:latest gcr.io/pyremote-444621/celery-worker:latest
+          docker push gcr.io/pyremote-444621/celery-worker:latest
+
+      # Step 7: Clear existing deployments in Kubernetes
+      - name: Clear Kubernetes deployments
+        run: |
+          kubectl delete deployments --all -n api-apps
+
+      # Step 8: Apply Kubernetes configurations
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -f api/k8s
