@@ -21,7 +21,8 @@ COPY . /app
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Change ownership of the app directory
-RUN chown -R celery_user:celery_user /app /tmp/pip_cache
+# Create the pip cache directory explicitly
+RUN mkdir -p /tmp/pip_cache && chown -R celery_user:celery_user /app /tmp/pip_cache
 
 # Set the user to non-root
 USER celery_user
