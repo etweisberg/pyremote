@@ -27,16 +27,22 @@ jobs:
           project_id: pyremote-444621
           service_account_key: ${{ secrets.GCP_CREDENTIALS }}
 
-      # Step 4: Configure Docker for GCR
+      # Step 4: Install gke-gcloud-auth-plugin
+      - name: Install gke-gcloud-auth-plugin
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-cloud-sdk-gke-gcloud-auth-plugin
+
+      # Step 5: Configure Docker for GCR
       - name: Authenticate Docker with GCR
         run: |
           gcloud auth configure-docker gcr.io
 
-      # Step 5: Set up Docker Buildx
+      # Step 6: Set up Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      # Step 6: Build and push Docker images from the 'api' directory
+      # Step 7: Build and push Docker images from the 'api' directory
       - name: Build and push Docker images
         working-directory: api
         run: |
@@ -54,14 +60,14 @@ jobs:
             -t gcr.io/pyremote-444621/celery-worker:latest \
             --push
 
-      # Step 7: Configure kubectl context
+      # Step 8: Configure kubectl context
       - name: Configure kubectl
         run: |
           gcloud container clusters get-credentials pyremote-cluster \
             --zone us-east1-b \
             --project pyremote-444621
 
-      # Step 8: Verify kubectl context
+      # Step 9: Verify kubectl context
       - name: Verify kubectl context
         run: |
           echo "Current kubectl configuration:"
@@ -69,12 +75,12 @@ jobs:
           echo "Current Kubernetes nodes:"
           kubectl get nodes
 
-      # Step 9: Clear existing deployments in Kubernetes
+      # Step 10: Clear existing deployments in Kubernetes
       - name: Clear Kubernetes deployments
         run: |
           kubectl delete deployments --all -n api-apps
 
-      # Step 10: Apply Kubernetes configurations from the 'api/k8s' directory
+      # Step 11: Apply Kubernetes configurations from the 'api/k8s' directory
       - name: Apply Kubernetes manifests
         working-directory: api
         run: |
