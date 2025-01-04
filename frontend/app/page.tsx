@@ -14,7 +14,9 @@ export default function Home() {
   const [liveOutput, setLiveOutput] = useState<string>("");
   const [errorOutput, setErrorOutput] = useState<string>("");
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const apiUrl = (
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+  ).replace(/\/+$/, "");
 
   useEffect(() => {
     // Initialize the list of available packages
