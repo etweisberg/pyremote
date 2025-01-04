@@ -5,9 +5,15 @@ metadata:
   namespace: api-apps
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
+  ingressClassName: nginx 
+  tls:
+  - hosts:
+    - api.pyremote.com
+    secretName: fastapi-tls
   rules:
-  - host: 'api.pyremote.com'
+  - host: api.pyremote.com
     http:
       paths:
       - path: /

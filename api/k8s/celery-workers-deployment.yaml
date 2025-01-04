@@ -27,6 +27,8 @@ spec:
         image: gcr.io/pyremote-444621/celery-worker:latest
         imagePullPolicy: Always
         env:
+        - name: REDIS_HOST
+          value: redis.api-apps.svc.cluster.local
         - name: CELERY_BROKER_URL
           value: redis://redis:6379/0
         - name: CELERY_RESULT_BACKEND

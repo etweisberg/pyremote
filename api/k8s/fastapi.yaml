@@ -20,6 +20,8 @@ spec:
         ports:
         - containerPort: 8000
         env:
+        - name: REDIS_HOST
+          value: redis.api-apps.svc.cluster.local
         - name: CELERY_BROKER_URL
           value: redis://redis:6379/0
         - name: CELERY_RESULT_BACKEND
