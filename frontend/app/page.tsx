@@ -52,7 +52,7 @@ export default function Home() {
           clearInterval(interval);
           setLoading(false);
         }
-      }, 1000);
+      }, 50);
     }
 
     return () => clearInterval(interval);
