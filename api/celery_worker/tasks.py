@@ -1,66 +1,100 @@
-import io
-import contextlib
-import logging
-import subprocess
+import redis
 import sys
+import io
+import logging
+import contextlib
 import importlib
+import subprocess
+import os
 from .main import celery_instance
 from .main import CACHED_REQUIREMENTS
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
+redis_client = redis.StrictRedis(host=os.getenv("REDIS_HOST"), port=6379, db=0)
 
-@celery_instance.task(time_limit=500)
-def execute_code(code: str, requirements: list):
-    logger.info(f"Starting execution at time {celery_instance.now()}")
+
+class RedisStream(io.StringIO):
+    def __init__(self, task_id, stream_name):
+        super().__init__()
+        self.task_id = task_id
+        self.stream_name = stream_name
+
+    def write(self, data):
+        super().write(data)
+        # Push updated data to Redis
+        redis_client.hset(self.task_id, self.stream_name, self.getvalue())
+
+
+@celery_instance.task(bind=True, time_limit=500)
+def execute_code(self, code: str, requirements: list):
+    task_id = self.request.id
+    logger.info(
+        f"Starting execution at time {celery_instance.now()} for task {task_id}"
+    )
+    redis_client.hmset(task_id, {"stdout": "", "stderr": "", "status": "IN PROGRESS"})
+
     try:
         if requirements:
-            # Convert the incoming requirements list to lowercase for comparison
             requirements_set = {req.lower() for req in requirements}
-
-            # Determine which packages need to be installed
             to_install = requirements_set - CACHED_REQUIREMENTS
-            logger.info(f"Packages to install: {to_install}")
 
             if to_install:
                 try:
-                    logger.info(
-                        f"Installing requirements: {to_install} at time {celery_instance.now()}"
-                    )
+                    logger.info(f"Installing requirements: {to_install}")
                     subprocess.run(
                         [sys.executable, "-m", "pip", "install", *to_install],
                         check=True,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
                     )
-                    logger.info(
-                        f"Subprocess completed successfully at time {celery_instance.now()}"
-                    )
                     importlib.invalidate_caches()
                     import site
 
                     importlib.reload(site)
-                    logger.info(f"Reloaded site module at time {celery_instance.now()}")
                 except subprocess.CalledProcessError as e:
-                    return {
-                        "stdout": "",
-                        "stderr": f"Error installing dependencies: {e.stderr.decode()}",
-                    }
+                    redis_client.hmset(
+                        task_id,
+                        {
+                            "stdout": "",
+                            "stderr": f"Error installing dependencies: {e.stderr.decode()}",
+                            "status": "FAILED",
+                        },
+                    )
+                    return
 
-        # Prepare to capture stdout and stderr
-        stdout = io.StringIO()
-        stderr = io.StringIO()
+        # Prepare custom streams
+        stdout = RedisStream(task_id, "stdout")
+        stderr = RedisStream(task_id, "stderr")
 
-        # Execute the code
+        # Execute the code and capture output
         with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
             exec_locals = {}
-            logger.info(f"Executing code at time {celery_instance.now()}")
             exec(code, exec_locals)
 
-        logger.info(f"Execution completed at time {celery_instance.now()}")
+        # Mark task as successful
+        redis_client.hmset(
+            task_id,
+            {
+                "stdout": stdout.getvalue(),
+                "stderr": stderr.getvalue(),
+                "status": "SUCCESS",
+            },
+        )
         return {"stdout": stdout.getvalue(), "stderr": stderr.getvalue()}
 
     except Exception as e:
         logger.exception("Error during task execution")
-        return {"stdout": "", "stderr": str(e)}
+        redis_client.hmset(
+            task_id,
+            {
+                "stdout": stdout.getvalue() if "stdout" in locals() else "",
+                "stderr": str(e),
+                "status": "FAILED",
+            },
+        )
+        return {
+            "stdout": stdout.getvalue() if "stdout" in locals() else "",
+            "stderr": str(e),
+        }

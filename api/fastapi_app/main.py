@@ -11,6 +11,7 @@ from bandit.core.config import BanditConfig
 from bandit.core.node_visitor import BanditNodeVisitor
 from bandit.core.test_set import BanditTestSet
 from bandit.core.metrics import Metrics
+import redis
 
 """
 Logging configuration
@@ -43,6 +44,11 @@ Bandit configuration
 config = BanditConfig()
 test_set = BanditTestSet(config)
 metrics = Metrics()
+
+"""
+Redis
+"""
+redis_client = redis.StrictRedis(host=os.getenv("REDIS_HOST"), port=6379, db=0)
 
 
 def check_code_security(code: str) -> list:
@@ -130,9 +136,14 @@ async def execute(request: CodeExecutionRequest):
 @app.get("/task_result/{task_id}")
 async def task_result(task_id: str):
     """
-    Get task result
+    Get task result, including intermediate output
     """
-    task = execute_code.AsyncResult(task_id)
-    if task.ready():
-        return task.get()
-    return {"status": task.status}
+    task_status = redis_client.hgetall(task_id)
+    if not task_status:
+        return {"status": "PENDING", "stdout": "", "stderr": ""}
+
+    return {
+        "status": task_status[b"status"].decode(),
+        "stdout": task_status[b"stdout"].decode(),
+        "stderr": task_status[b"stderr"].decode(),
+    }
