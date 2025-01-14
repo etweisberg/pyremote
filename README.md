@@ -42,22 +42,7 @@ kubectl apply -f k8s/
 kubectl port-forward svc/fastapi-service 8000:8000 -n api-apps
 ```
 
-## TODO
-
-- [x] Update Celery worker image
-  - [x] Non-root user
-  - [x] Read-only file system
-  - [ ] Restrict Linux OS capabilities (_SKIPPING THIS_)
-- [x] Update Celery deployment
-  - [x] Resource limits
-  - [x] Security context (for non-root user and read-only files)
-  - [x] Readiness / Liveness probes
-  - [x] HPA (horizontal pod autoscaler) + PDB (pod disruption budget)
-- [x] Add static code analysis to FastAPI
-  - [x] `bandit` and `safety` modules
-- [ ] All of the frontend LOL 😅
-
-## SetUp
+## Set Up
 
 1. Celery task run as a k8s deployment
 
